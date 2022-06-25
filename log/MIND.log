@@ -1,0 +1,347 @@
+>>SEED: 2020
+1979931 interactions for training
+565695 interactions for testing
+MIND Sparsity : 0.0001733239373327614
+MIND is ready to go
+===========config================
+KGC: True @ d_prob:0.5 @ joint:True @ from_pretrain:False
+UIC: WEIGHTED-MIX @ d_prob:0.4 @ temp:0.2 @ reg:0.06
+{'A_n_fold': 100,
+ 'A_split': False,
+ 'bpr_batch_size': 2048,
+ 'decay': 0.001,
+ 'dropout': 0,
+ 'keep_prob': 0.6,
+ 'latent_dim_rec': 64,
+ 'lightGCN_n_layers': 3,
+ 'lr': 0.0005,
+ 'multicore': 0,
+ 'pretrain': 0,
+ 'test_u_batch_size': 4096}
+cores for test: 24
+comment: lgn
+tensorboard: 0
+LOAD: 0
+Weight path: ./checkpoints
+Test Topks: [20]
+using bpr loss
+===========end===================
+user:300000, item:48957, entity:57188
+use NORMAL distribution UI
+use NORMAL distribution ENTITY
+loading adjacency matrix
+successfully loaded...
+don't split the matrix
+lgn is already to go(dropout:1)
+not enable tensorflowboard
+[Trans]
+trans Loss: 0.709
+[Drop]
+keep ratio: 0.59
+finally keep ratio: 0.70
+d_inv = np.power(rowsum, -0.5).flatten()
+keep ratio: 0.60
+finally keep ratio: 0.69
+[Joint Learning]
+EPOCH[1/1000] loss1.542 = 0.908+0.634-|
+[TEST]
+{'precision': array([0.00945269]), 'recall': array([0.08772685]), 'ndcg': array([0.043878])}
+[Trans]
+trans Loss: 0.725
+[Drop]
+keep ratio: 0.60
+finally keep ratio: 0.69
+keep ratio: 0.60
+finally keep ratio: 0.69
+[Joint Learning]
+EPOCH[2/1000] loss1.363 = 0.921+0.442-|
+[TEST]
+{'precision': array([0.01033627]), 'recall': array([0.09589056]), 'ndcg': array([0.04800118])}
+find a better model
+[Trans]
+trans Loss: 0.784
+[Drop]
+keep ratio: 0.60
+finally keep ratio: 0.68
+keep ratio: 0.60
+finally keep ratio: 0.69
+[Joint Learning]
+EPOCH[3/1000] loss1.247 = 0.936+0.311-|
+[TEST]
+{'precision': array([0.01079301]), 'recall': array([0.10018251]), 'ndcg': array([0.05055413])}
+find a better model
+[Trans]
+trans Loss: 0.902
+[Drop]
+keep ratio: 0.60
+finally keep ratio: 0.68
+keep ratio: 0.60
+finally keep ratio: 0.69
+[Joint Learning]
+EPOCH[4/1000] loss1.173 = 0.926+0.247-|
+[TEST]
+{'precision': array([0.01116803]), 'recall': array([0.10376404]), 'ndcg': array([0.05271196])}
+find a better model
+[Trans]
+trans Loss: 1.009
+[Drop]
+keep ratio: 0.60
+finally keep ratio: 0.68
+keep ratio: 0.60
+finally keep ratio: 0.69
+[Joint Learning]
+EPOCH[5/1000] loss1.121 = 0.913+0.208-|
+[TEST]
+{'precision': array([0.01137456]), 'recall': array([0.10572913]), 'ndcg': array([0.05401585])}
+find a better model
+[Trans]
+trans Loss: 1.107
+[Drop]
+keep ratio: 0.60
+finally keep ratio: 0.69
+keep ratio: 0.60
+finally keep ratio: 0.69
+[Joint Learning]
+EPOCH[6/1000] loss1.099 = 0.910+0.189-|
+[TEST]
+{'precision': array([0.01140212]), 'recall': array([0.10602821]), 'ndcg': array([0.05418243])}
+find a better model
+[Trans]
+trans Loss: 1.087
+[Drop]
+keep ratio: 0.60
+finally keep ratio: 0.68
+keep ratio: 0.60
+finally keep ratio: 0.68
+[Joint Learning]
+EPOCH[7/1000] loss1.089 = 0.905+0.184-|
+[TEST]
+{'precision': array([0.01142153]), 'recall': array([0.10620919]), 'ndcg': array([0.05435879])}
+find a better model
+[Trans]
+trans Loss: 1.094
+[Drop]
+keep ratio: 0.60
+finally keep ratio: 0.69
+keep ratio: 0.60
+finally keep ratio: 0.68
+[Joint Learning]
+EPOCH[8/1000] loss1.081 = 0.902+0.178-|
+[TEST]
+{'precision': array([0.01142988]), 'recall': array([0.10637308]), 'ndcg': array([0.05445338])}
+find a better model
+[Trans]
+trans Loss: 1.134
+[Drop]
+keep ratio: 0.60
+finally keep ratio: 0.68
+keep ratio: 0.60
+finally keep ratio: 0.68
+[Joint Learning]
+EPOCH[9/1000] loss1.073 = 0.900+0.173-|
+[TEST]
+{'precision': array([0.01144949]), 'recall': array([0.10655055]), 'ndcg': array([0.05458314])}
+find a better model
+[Trans]
+trans Loss: 1.134
+[Drop]
+keep ratio: 0.60
+finally keep ratio: 0.69
+keep ratio: 0.60
+finally keep ratio: 0.68
+[Joint Learning]
+EPOCH[10/1000] loss1.066 = 0.898+0.168-|
+[TEST]
+{'precision': array([0.01145104]), 'recall': array([0.10660108]), 'ndcg': array([0.05468899])}
+find a better model
+[Trans]
+trans Loss: 1.161
+[Drop]
+keep ratio: 0.60
+finally keep ratio: 0.69
+keep ratio: 0.60
+finally keep ratio: 0.69
+[Joint Learning]
+EPOCH[11/1000] loss1.063 = 0.897+0.165-|
+[TEST]
+{'precision': array([0.01145084]), 'recall': array([0.10655107]), 'ndcg': array([0.05469264])}
+[Trans]
+trans Loss: 1.112
+[Drop]
+keep ratio: 0.60
+finally keep ratio: 0.68
+keep ratio: 0.60
+finally keep ratio: 0.69
+[Joint Learning]
+EPOCH[12/1000] loss1.061 = 0.897+0.164-|
+[TEST]
+{'precision': array([0.01144619]), 'recall': array([0.10652221]), 'ndcg': array([0.05469564])}
+[Trans]
+trans Loss: 1.146
+[Drop]
+keep ratio: 0.60
+finally keep ratio: 0.68
+keep ratio: 0.60
+finally keep ratio: 0.69
+[Joint Learning]
+EPOCH[13/1000] loss1.060 = 0.896+0.163-|
+[TEST]
+{'precision': array([0.01145298]), 'recall': array([0.10657504]), 'ndcg': array([0.05471461])}
+[Trans]
+trans Loss: 1.157
+[Drop]
+keep ratio: 0.60
+finally keep ratio: 0.69
+keep ratio: 0.60
+finally keep ratio: 0.69
+[Joint Learning]
+EPOCH[14/1000] loss1.058 = 0.895+0.162-|
+[TEST]
+{'precision': array([0.01145744]), 'recall': array([0.10665029]), 'ndcg': array([0.05475182])}
+find a better model
+[Trans]
+trans Loss: 1.160
+[Drop]
+keep ratio: 0.60
+finally keep ratio: 0.69
+keep ratio: 0.60
+finally keep ratio: 0.68
+[Joint Learning]
+EPOCH[15/1000] loss1.057 = 0.896+0.162-|
+[TEST]
+{'precision': array([0.0114555]), 'recall': array([0.10664731]), 'ndcg': array([0.05476736])}
+[Trans]
+trans Loss: 1.170
+[Drop]
+keep ratio: 0.60
+finally keep ratio: 0.69
+keep ratio: 0.60
+finally keep ratio: 0.69
+[Joint Learning]
+EPOCH[16/1000] loss1.056 = 0.895+0.161-|
+[TEST]
+{'precision': array([0.01146288]), 'recall': array([0.10674278]), 'ndcg': array([0.05479929])}
+find a better model
+[Trans]
+trans Loss: 1.165
+[Drop]
+keep ratio: 0.60
+finally keep ratio: 0.68
+keep ratio: 0.60
+finally keep ratio: 0.69
+[Joint Learning]
+EPOCH[17/1000] loss1.055 = 0.895+0.160-|
+[TEST]
+{'precision': array([0.01146191]), 'recall': array([0.10734437]), 'ndcg': array([0.05512142])}
+find a better model
+[Trans]
+trans Loss: 1.163
+[Drop]
+keep ratio: 0.60
+finally keep ratio: 0.69
+keep ratio: 0.60
+finally keep ratio: 0.68
+[Joint Learning]
+EPOCH[18/1000] loss1.053 = 0.895+0.159-|
+[TEST]
+{'precision': array([0.01145783]), 'recall': array([0.10670309]), 'ndcg': array([0.05483391])}
+[Trans]
+trans Loss: 1.169
+[Drop]
+keep ratio: 0.60
+finally keep ratio: 0.68
+keep ratio: 0.60
+finally keep ratio: 0.68
+[Joint Learning]
+EPOCH[19/1000] loss1.051 = 0.893+0.158-|
+[TEST]
+{'precision': array([0.01145783]), 'recall': array([0.10671597]), 'ndcg': array([0.05484814])}
+[Trans]
+trans Loss: 1.170
+[Drop]
+keep ratio: 0.60
+finally keep ratio: 0.69
+keep ratio: 0.60
+finally keep ratio: 0.68
+[Joint Learning]
+EPOCH[20/1000] loss1.051 = 0.893+0.157-|
+[TEST]
+{'precision': array([0.01145026]), 'recall': array([0.10665455]), 'ndcg': array([0.05484016])}
+[Trans]
+trans Loss: 1.154
+[Drop]
+keep ratio: 0.60
+finally keep ratio: 0.68
+keep ratio: 0.60
+finally keep ratio: 0.69
+[Joint Learning]
+EPOCH[21/1000] loss1.049 = 0.893+0.156-|
+[TEST]
+{'precision': array([0.01145143]), 'recall': array([0.10670525]), 'ndcg': array([0.05484909])}
+[Trans]
+trans Loss: 1.171
+[Drop]
+keep ratio: 0.60
+finally keep ratio: 0.68
+keep ratio: 0.60
+finally keep ratio: 0.68
+[Joint Learning]
+EPOCH[22/1000] loss1.047 = 0.892+0.155-|
+[TEST]
+{'precision': array([0.01145608]), 'recall': array([0.10673316]), 'ndcg': array([0.05485457])}
+[Trans]
+trans Loss: 1.172
+[Drop]
+keep ratio: 0.60
+finally keep ratio: 0.69
+keep ratio: 0.60
+finally keep ratio: 0.68
+[Joint Learning]
+EPOCH[23/1000] loss1.047 = 0.892+0.155-|
+[TEST]
+{'precision': array([0.01145026]), 'recall': array([0.10665839]), 'ndcg': array([0.05486041])}
+[Trans]
+trans Loss: 1.161
+[Drop]
+keep ratio: 0.60
+finally keep ratio: 0.68
+keep ratio: 0.60
+finally keep ratio: 0.69
+[Joint Learning]
+EPOCH[24/1000] loss1.045 = 0.891+0.154-|
+[TEST]
+{'precision': array([0.01145414]), 'recall': array([0.10668955]), 'ndcg': array([0.0548654])}
+[Trans]
+trans Loss: 1.163
+[Drop]
+keep ratio: 0.60
+finally keep ratio: 0.68
+keep ratio: 0.60
+finally keep ratio: 0.68
+[Joint Learning]
+EPOCH[25/1000] loss1.043 = 0.890+0.153-|
+[TEST]
+{'precision': array([0.01145706]), 'recall': array([0.10672933]), 'ndcg': array([0.05487888])}
+[Trans]
+trans Loss: 1.181
+[Drop]
+keep ratio: 0.60
+finally keep ratio: 0.69
+keep ratio: 0.60
+finally keep ratio: 0.69
+[Joint Learning]
+EPOCH[26/1000] loss1.042 = 0.890+0.152-|
+[TEST]
+{'precision': array([0.01145046]), 'recall': array([0.10664947]), 'ndcg': array([0.05485913])}
+[Trans]
+trans Loss: 1.168
+[Drop]
+keep ratio: 0.60
+finally keep ratio: 0.68
+keep ratio: 0.60
+finally keep ratio: 0.68
+[Joint Learning]
+EPOCH[27/1000] loss1.042 = 0.890+0.151-|
+[TEST]
+{'precision': array([0.01144308]), 'recall': array([0.10658542]), 'ndcg': array([0.05483935])}
+early stop triggerd at epoch 26
