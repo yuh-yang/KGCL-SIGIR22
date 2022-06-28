@@ -1,12 +1,32 @@
+'''
+Created on Mar 1, 2020
+Pytorch Implementation of LightGCN in
+Xiangnan He et al. LightGCN: Simplifying and Powering Graph Convolution Network for Recommendation
+
+@author: Jianbai Ye (gusye@mail.ustc.edu.cn)
+'''
+import collections
 import world
 import torch
+from torch import nn, optim
 import numpy as np
 from torch import log
 from dataloader import BasicDataset
 from time import time
 from sklearn.metrics import roc_auc_score
+import random
 import os
-
+sample_ext = False
+# try:
+#     from cppimport import imp_from_filepath
+#     from os.path import join, dirname
+#     path = join(dirname(__file__), "sources/sampling.cpp")
+#     sampling = imp_from_filepath(path)
+#     sampling.seed(world.seed)
+#     sample_ext = True
+# except:
+#     world.cprint("Cpp extension not loaded")
+#     sample_ext = False
 
 def randint_choice(high, size=None, replace=True, p=None, exclusion=None):
     """Return random integers from `0` (inclusive) to `high` (exclusive).
@@ -28,22 +48,23 @@ def randint_choice(high, size=None, replace=True, p=None, exclusion=None):
 def _L2_loss_mean(x):
     return torch.mean(torch.sum(torch.pow(x, 2), dim=1, keepdim=False) / 2.)
 
-
 class BPRLoss:
-    def __init__(self, recmodel, opt):
+    def __init__(self,
+                 recmodel,
+                 opt):
         self.model = recmodel
         self.opt = opt
         self.weight_decay = world.config["decay"]
 
     def compute(self, users, pos, neg):
         loss, reg_loss = self.model.bpr_loss(users, pos, neg)
-        reg_loss = reg_loss * self.weight_decay
+        reg_loss = reg_loss*self.weight_decay
         loss = loss + reg_loss
         return loss
 
     def stageOne(self, users, pos, neg):
         loss, reg_loss = self.model.bpr_loss(users, pos, neg)
-        reg_loss = reg_loss * self.weight_decay
+        reg_loss = reg_loss*self.weight_decay
         loss = loss + reg_loss
 
         self.opt.zero_grad()
@@ -53,13 +74,16 @@ class BPRLoss:
         return loss.cpu().item()
 
 
-def UniformSample_original(dataset, neg_ratio=1):
-    dataset: BasicDataset
+def UniformSample_original(dataset, neg_ratio = 1):
+    dataset : BasicDataset
     allPos = dataset.allPos
     start = time()
-    S = UniformSample_original_python(dataset)
+    if sample_ext:
+        S = sampling.sample_negative(dataset.n_users, dataset.m_items,
+                                     dataset.trainDataSize, allPos, neg_ratio)
+    else:
+        S = UniformSample_original_python(dataset)
     return S
-
 
 def UniformSample_original_python(dataset):
     """
@@ -68,7 +92,7 @@ def UniformSample_original_python(dataset):
         np.array
     """
     total_start = time()
-    dataset: BasicDataset
+    dataset : BasicDataset
     user_num = dataset.trainDataSize
     users = np.random.randint(0, dataset.n_users, user_num)
     allPos = dataset.allPos
@@ -95,10 +119,8 @@ def UniformSample_original_python(dataset):
     total = time() - total_start
     return np.array(S)
 
-
 # ===================end samplers==========================
 # =====================utils====================================
-
 
 def set_seed(seed):
     np.random.seed(seed)
@@ -107,20 +129,16 @@ def set_seed(seed):
         torch.cuda.manual_seed_all(seed)
     torch.manual_seed(seed)
 
-
 def getFileName():
     if world.model_name == 'mf':
         file = f"mf-{world.dataset}-{world.config['latent_dim_rec']}.pth.tar"
     elif world.model_name == 'lgn':
         file = f"lgn-{world.dataset}-{world.config['lightGCN_n_layers']}-{world.config['latent_dim_rec']}.pth.tar"
-    elif world.model_name == 'kgc':
+    elif world.model_name == 'kgcl':
         file = f"kgc-{world.dataset}-{world.config['latent_dim_rec']}.pth.tar"
     elif world.model_name == 'sgl':
         file = f"sgl-{world.dataset}-{world.config['latent_dim_rec']}.pth.tar"
-    elif world.model_name == 'sgl-rgat':
-        file = f"sgl-rgat-{world.dataset}-{world.config['latent_dim_rec']}.pth.tar"
-    return os.path.join(world.FILE_PATH, file)
-
+    return os.path.join(world.FILE_PATH,file)
 
 def minibatch(*tensors, **kwargs):
 
@@ -140,7 +158,8 @@ def shuffle(*arrays, **kwargs):
     require_indices = kwargs.get('indices', False)
 
     if len(set(len(x) for x in arrays)) != 1:
-        raise ValueError('All inputs to shuffle must have ' 'the same length.')
+        raise ValueError('All inputs to shuffle must have '
+                         'the same length.')
 
     shuffle_indices = np.arange(len(arrays[0]))
     np.random.shuffle(shuffle_indices)
@@ -229,8 +248,8 @@ def RecallPrecision_ATk(test_data, r, k):
     right_pred = r[:, :k].sum(1)
     precis_n = k
     recall_n = np.array([len(test_data[i]) for i in range(len(test_data))])
-    recall = np.sum(right_pred / recall_n)
-    precis = np.sum(right_pred) / precis_n
+    recall = np.sum(right_pred/recall_n)
+    precis = np.sum(right_pred)/precis_n
     return {'recall': recall, 'precision': precis}
 
 
@@ -239,13 +258,12 @@ def MRRatK_r(r, k):
     Mean Reciprocal Rank
     """
     pred_data = r[:, :k]
-    scores = np.log2(1. / np.arange(1, k + 1))
-    pred_data = pred_data / scores
+    scores = np.log2(1./np.arange(1, k+1))
+    pred_data = pred_data/scores
     pred_data = pred_data.sum(1)
     return np.sum(pred_data)
 
-
-def NDCGatK_r(test_data, r, k):
+def NDCGatK_r(test_data,r,k):
     """
     Normalized Discounted Cumulative Gain
     rel_i = 1 or 0, so 2^{rel_i} - 1 = 1 or 0
@@ -258,26 +276,24 @@ def NDCGatK_r(test_data, r, k):
         length = k if k <= len(items) else len(items)
         test_matrix[i, :length] = 1
     max_r = test_matrix
-    idcg = np.sum(max_r * 1. / np.log2(np.arange(2, k + 2)), axis=1)
-    dcg = pred_data * (1. / np.log2(np.arange(2, k + 2)))
+    idcg = np.sum(max_r * 1./np.log2(np.arange(2, k + 2)), axis=1)
+    dcg = pred_data*(1./np.log2(np.arange(2, k + 2)))
     dcg = np.sum(dcg, axis=1)
     idcg[idcg == 0.] = 1.
-    ndcg = dcg / idcg
+    ndcg = dcg/idcg
     ndcg[np.isnan(ndcg)] = 0.
     return np.sum(ndcg)
-
 
 def AUC(all_item_scores, dataset, test_data):
     """
         design for a single user
     """
-    dataset: BasicDataset
+    dataset : BasicDataset
     r_all = np.zeros((dataset.m_items, ))
     r_all[test_data] = 1
     r = r_all[all_item_scores >= 0]
     test_item_scores = all_item_scores[all_item_scores >= 0]
     return roc_auc_score(r, test_item_scores)
-
 
 def getLabel(test_data, pred_data):
     r = []
@@ -288,7 +304,6 @@ def getLabel(test_data, pred_data):
         pred = np.array(pred).astype("float")
         r.append(pred)
     return np.array(r).astype('float')
-
 
 # ====================end Metrics=============================
 # =========================================================

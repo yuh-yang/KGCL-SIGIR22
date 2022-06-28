@@ -1,3 +1,11 @@
+'''
+Created on Mar 1, 2020
+Pytorch Implementation of LightGCN in
+Xiangnan He et al. LightGCN: Simplifying and Powering Graph Convolution Network for Recommendation
+@author: Jianbai Ye (gusye@mail.ustc.edu.cn)
+
+Design training and test process
+'''
 from contrast import Contrast
 from torch.utils.data.dataloader import DataLoader
 import world
@@ -5,10 +13,14 @@ import numpy as np
 import torch
 import utils
 import dataloader
+from pprint import pprint
 from utils import timer
+from time import time
 from tqdm import tqdm
 import model
 import multiprocessing
+from sklearn.metrics import roc_auc_score
+
 
 CORES = multiprocessing.cpu_count() // 2
 
@@ -31,13 +43,107 @@ def TransR_train(recommend_model, opt):
     return trans_loss.cpu().item()
 
 
-def BPR_train_contrast(dataset, recommend_model, loss_class, contrast_model :Contrast, contrast_views, epoch, optimizer, neg_k=1, w=None, ssl_reg=0.1):
+def train_contrast(recommend_model, contrast_model, contrast_views, optimizer):
+    recmodel = recommend_model
+    recmodel.train()
+    aver_loss = 0.
+
+    # For SGL
+    kgv1, kgv2 = contrast_views["kgv1"], contrast_views["kgv2"]
+    uiv1, uiv2 = contrast_views["uiv1"], contrast_views["uiv2"]
+    # do SGL:
+        # readout
+    l_kg = list()
+    l_item = list()
+    l_user = list()
+
+    if world.kgc_enable:
+        # item_num, emb_dim
+        kgv1_readouts = recmodel.cal_item_embedding_from_kg(kgv1).split(2048)
+        kgv2_readouts = recmodel.cal_item_embedding_from_kg(kgv2).split(2048)
+
+        for kgv1_ro, kgv2_ro in zip(kgv1_readouts, kgv2_readouts):
+            l_kg.append(contrast_model.semi_loss(kgv1_ro, kgv2_ro).sum())
+
+    # if world.uic_pretrain:
+    #     # user_num, emb_dim
+    #     usersv1_readouts, itemsv1_readouts = recmodel.view_computer(uiv1)
+    #     usersv1_readouts = usersv1_readouts.split(1024)
+    #     itemsv1_readouts = itemsv1_readouts.split(1024)
+    #     usersv2_readouts, itemsv2_readouts = recmodel.view_computer(uiv2)
+    #     usersv2_readouts = usersv2_readouts.split(1024)
+    #     itemsv2_readouts = itemsv2_readouts.split(1024)
+
+    #     for itemsv1_ro, itemsv2_ro in zip(itemsv1_readouts, itemsv2_readouts):
+    #         l_item.append(contrast_model.semi_loss(itemsv1_ro, itemsv2_ro).sum())
+    #         # representations from 2 U-I views for every user
+    #     for usersv1_ro, usersv2_ro in zip(usersv1_readouts, usersv2_readouts):
+    #         l_user.append(contrast_model.semi_loss(usersv1_ro, usersv2_ro).sum())
+
+    l_contrast = torch.stack(l_kg).sum()
+    # l_contrast = torch.stack(l_item).sum() + torch.stack(l_user).sum()
+    """
+    if world.uicontrast!="NO":
+        if world.uicontrast=="ITEM-BI":
+            items_kg_readouts = recmodel.cal_item_embedding_from_kg(None).split(1024)
+            items_cf_readouts = recmodel.computer()[1].split(1024)
+            for itemsv1_ro, itemsv2_ro in zip(items_kg_readouts, items_cf_readouts):
+                l_item.append(contrast_model.info_nce_loss(itemsv1_ro, itemsv2_ro).sum())
+
+        else:
+            # user_num, emb_dim
+            usersv1_readouts, itemsv1_readouts = recmodel.view_computer(uiv1)
+            usersv1_readouts = usersv1_readouts.split(1024)
+            itemsv1_readouts = itemsv1_readouts.split(1024)
+            usersv2_readouts, itemsv2_readouts = recmodel.view_computer(uiv2)
+            usersv2_readouts = usersv2_readouts.split(1024)
+            itemsv2_readouts = itemsv2_readouts.split(1024)
+
+            for itemsv1_ro, itemsv2_ro in zip(itemsv1_readouts, itemsv2_readouts):
+                l_item.append(contrast_model.info_nce_loss(itemsv1_ro, itemsv2_ro).sum())
+                # representations from 2 U-I views for every user
+            for usersv1_ro, usersv2_ro in zip(usersv1_readouts, usersv2_readouts):
+                l_user.append(contrast_model.info_nce_loss(usersv1_ro, usersv2_ro).sum())
+    # L = L_user + L_item + L_kg
+    if world.kgcontrast:
+        if world.uicontrast!="NO":
+            if world.uicontrast=="ITEM-BI":
+                l_contrast = torch.stack(l_kg).sum() + torch.stack(l_item).sum()
+            else:
+                l_contrast = torch.stack(l_kg).sum() + torch.stack(l_item).sum() + torch.stack(l_user).sum()
+        else:
+            l_contrast = torch.stack(l_kg).sum()
+    else:
+        if world.uicontrast=="ITEM-BI":
+            l_contrast = torch.stack(l_item).sum()
+        else:
+            l_contrast = torch.stack(l_item).sum() + torch.stack(l_user).sum()
+    """
+    optimizer.zero_grad()
+    l_contrast.backward()
+    optimizer.step()
+
+    aver_loss += l_contrast.cpu().item() / len(kgv1_readouts)
+    return aver_loss
+
+
+def BPR_train_contrast(dataset, recommend_model, loss_class, contrast_model :Contrast, contrast_views, epoch, optimizer, neg_k=1, w=None):
     Recmodel :model.KGCL = recommend_model
     Recmodel.train()
     bpr: utils.BPRLoss = loss_class
     batch_size = world.config['bpr_batch_size']
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, drop_last=True, num_workers=12)
+    # with timer(name="Sample"):
+    #     S = utils.UniformSample_original(dataset)
+    # users = torch.Tensor(S[:, 0]).long()
+    # posItems = torch.Tensor(S[:, 1]).long()
+    # negItems = torch.Tensor(S[:, 2]).long()
 
+    # users = users.to(world.device)
+    # posItems = posItems.to(world.device)
+    # negItems = negItems.to(world.device)
+    # users, posItems, negItems = utils.shuffle(users, posItems, negItems)
+    # total_batch = len(dataset) // batch_size + 1
     total_batch = len(dataloader)
     aver_loss = 0.
     aver_loss_main = 0.
@@ -69,14 +175,24 @@ def BPR_train_contrast(dataset, recommend_model, loss_class, contrast_model :Con
                 # representations from 2 U-I views for every item
             items_uiv1 = itemsv1_ro[items]
             items_uiv2 = itemsv2_ro[items]
-            l_item = contrast_model.grace_loss(items_uiv1, items_uiv2)
-
+            l_item = contrast_model.info_nce_loss_overall(items_uiv1, items_uiv2, itemsv2_ro)
+            # l_item = contrast_model.grace_loss(items_uiv1, items_uiv2)
+            # kgv1_ro = items_kg1_ro[items]
+            # kgv2_ro = items_kg2_ro[items]
+            # l_kg = contrast_model.semi_loss(kgv1_ro, kgv2_ro).sum()
+                # representations from 2 U-I views for every user
             users = batch_users
             users_uiv1 = usersv1_ro[users]
             users_uiv2 = usersv2_ro[users]
-            l_user = contrast_model.grace_loss(users_uiv1, users_uiv2)
-            l_ssl.extend([l_user*ssl_reg, l_item*ssl_reg])
+            l_user = contrast_model.info_nce_loss_overall(users_uiv1, users_uiv2, usersv2_ro)
+            # l_user = contrast_model.grace_loss(users_uiv1, users_uiv2)
+            # L = L_main + L_user + L_item + L_kg + R^2
+            l_ssl.extend([l_user*world.ssl_reg, l_item*world.ssl_reg])
         
+        # if world.social_ssl:
+        #     l_social = Recmodel.cal_social_ssl()
+        #     l_ssl.append(l_social*0.01)
+
         if l_ssl:
             l_ssl = torch.stack(l_ssl).sum()
             l_all = l_main+l_ssl
@@ -89,7 +205,8 @@ def BPR_train_contrast(dataset, recommend_model, loss_class, contrast_model :Con
 
         aver_loss_main += l_main.cpu().item()
         aver_loss += l_all.cpu().item()
-
+        if world.tensorboard:
+            w.add_scalar(f'BPRLoss/BPR', l_all, epoch * int(len(users) / world.config['bpr_batch_size']) + batch_i)
     aver_loss = aver_loss / (total_batch*batch_size)
     aver_loss_main = aver_loss_main / (total_batch*batch_size)
     aver_loss_ssl = aver_loss_ssl / (total_batch*batch_size)
@@ -125,7 +242,8 @@ def BPR_train_original(dataset, recommend_model, loss_class, epoch, neg_k=1, w=N
                                                    batch_size=world.config['bpr_batch_size'])):
         cri = bpr.stageOne(batch_users, batch_pos, batch_neg)
         aver_loss += cri
-
+        if world.tensorboard:
+            w.add_scalar(f'BPRLoss/BPR', cri, epoch * int(len(users) / world.config['bpr_batch_size']) + batch_i)
     aver_loss = aver_loss / total_batch
     time_info = timer.dict()
     timer.zero()
@@ -169,6 +287,8 @@ def Test(dataset, Recmodel, epoch, w=None, multicore=0):
         users_list = []
         rating_list = []
         groundTrue_list = []
+        # auc_record = []
+        # ratings = []
         total_batch = len(users) // u_batch_size + 1
         for batch_users in utils.minibatch(users, batch_size=u_batch_size):
             allPos = dataset.getUserPosItems(batch_users)
@@ -186,6 +306,12 @@ def Test(dataset, Recmodel, epoch, w=None, multicore=0):
             rating[exclude_index, exclude_items] = -(1<<10)
             _, rating_K = torch.topk(rating, k=max_K)
             rating = rating.cpu().numpy()
+            # aucs = [ 
+            #         utils.AUC(rating[i],
+            #                   dataset, 
+            #                   test_data) for i, test_data in enumerate(groundTrue)
+            #     ]
+            # auc_record.extend(aucs)
             del rating
             users_list.append(batch_users)
             rating_list.append(rating_K.cpu())
@@ -206,7 +332,14 @@ def Test(dataset, Recmodel, epoch, w=None, multicore=0):
         results['recall'] /= float(len(users))
         results['precision'] /= float(len(users))
         results['ndcg'] /= float(len(users))
-
+        # results['auc'] = np.mean(auc_record)
+        if world.tensorboard:
+            w.add_scalars(f'Test/Recall@{world.topks}',
+                          {str(world.topks[i]): results['recall'][i] for i in range(len(world.topks))}, epoch)
+            w.add_scalars(f'Test/Precision@{world.topks}',
+                          {str(world.topks[i]): results['precision'][i] for i in range(len(world.topks))}, epoch)
+            w.add_scalars(f'Test/NDCG@{world.topks}',
+                          {str(world.topks[i]): results['ndcg'][i] for i in range(len(world.topks))}, epoch)
         if multicore == 1:
             pool.close()
         print(results)
