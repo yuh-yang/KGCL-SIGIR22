@@ -52,7 +52,7 @@ class KGDataset(Dataset):
                     i2es[item] = torch.IntTensor(tails).to(world.device)[:entity_num]
                     i2rs[item] = torch.IntTensor(relations).to(world.device)[:entity_num]
                 else:
-                    # 最后一个embedding作为padding idx
+                    # last embedding pos as padding idx
                     tails.extend([self.entity_count]*(entity_num-len(tails)))
                     relations.extend([self.relation_count]*(entity_num-len(relations)))
                     i2es[item] = torch.IntTensor(tails).to(world.device)
