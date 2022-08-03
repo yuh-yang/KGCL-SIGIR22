@@ -3,7 +3,7 @@
 This is the Pytorch implementation for our *SIGIR'22* paper: **Knowledge Graph Contrastive Learning for Recommendation**. The CF learning part in the code is based on the open-source repository here: [LightGCN](https://github.com/gusye1234/LightGCN-PyTorch), many thanks to the authors!
 
 You are welcome to cite our paper:
-``
+```
 @inproceedings{kgcl2022,
   author = {Yang, Yuhao and Huang, Chao and Xia, Lianghao and Li, Chenliang},
   title = {Knowledge Graph Contrastive Learning for Recommendation},
@@ -11,7 +11,7 @@ You are welcome to cite our paper:
   booktitle = {Proceedings of the 45th International ACM SIGIR Conference on Research and Development in Information Retrieval},
   pages = {1434–1443}
 }
-``
+```
 
 ## Enviroment Requirement
 
