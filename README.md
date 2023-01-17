@@ -1,3 +1,5 @@
+## Updates
+**17-01-2023:** We have rebuilt the code for KGCL to significantly improve the readability and model performance! The new version will be available soon after close check.
 ## KGCL
 
 This is the Pytorch implementation for our *SIGIR'22* paper: **Knowledge Graph Contrastive Learning for Recommendation**. The CF learning part in the code is based on the open-source repository here: [LightGCN](https://github.com/gusye1234/LightGCN-PyTorch), many thanks to the authors!
