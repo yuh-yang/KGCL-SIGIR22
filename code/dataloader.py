@@ -24,7 +24,7 @@ from world import cprint
 from time import time
 
 class KGDataset(Dataset):
-    def __init__(self, kg_path=join(world.DATA_PATH, world.dataset, "kg_final.txt")):
+    def __init__(self, kg_path=join(world.DATA_PATH, world.dataset, "kg.txt")):
         kg_data = pd.read_csv(kg_path, sep=' ', names=['h', 'r', 't'], engine='python')
         self.kg_data = kg_data.drop_duplicates()
         self.kg_dict, self.heads = self.generate_kg_data(kg_data=self.kg_data)
