@@ -74,6 +74,7 @@ try:
             if world.kgc_joint or world.uicontrast!="NO":
                 output_information = Procedure.BPR_train_contrast(dataset, Recmodel, bpr, contrast_model, contrast_views, epoch, optimizer, neg_k=Neg_k,w=w)
             else:
+                # LightGCN
                 output_information = Procedure.BPR_train_original(dataset, Recmodel, bpr, epoch, neg_k=Neg_k,w=w)
             
 

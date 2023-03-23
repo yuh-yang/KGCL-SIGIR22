@@ -24,18 +24,20 @@ from sklearn.metrics import roc_auc_score
 
 CORES = multiprocessing.cpu_count() // 2
 
+
 def TransR_train(recommend_model, opt):
     Recmodel = recommend_model
     Recmodel.train()
     kgdataset = dataloader.KGDataset()
-    kgloader = DataLoader(kgdataset,batch_size=4096,drop_last=True)
+    kgloader = DataLoader(kgdataset, batch_size=4096, drop_last=True)
     trans_loss = 0.
     for data in tqdm(kgloader, total=len(kgloader), disable=True):
         heads = data[0].to(world.device)
         relations = data[1].to(world.device)
         pos_tails = data[2].to(world.device)
         neg_tails = data[3].to(world.device)
-        kg_batch_loss = Recmodel.calc_kg_loss_transE(heads, relations, pos_tails, neg_tails)
+        kg_batch_loss = Recmodel.calc_kg_loss_transE(
+            heads, relations, pos_tails, neg_tails)
         trans_loss += kg_batch_loss / len(kgloader)
         opt.zero_grad()
         kg_batch_loss.backward()
@@ -43,41 +45,13 @@ def TransR_train(recommend_model, opt):
     return trans_loss.cpu().item()
 
 
-def train_contrast(recommend_model, contrast_model, contrast_views, optimizer):
-    recmodel = recommend_model
-    recmodel.train()
-    aver_loss = 0.
-
-    kgv1, kgv2 = contrast_views["kgv1"], contrast_views["kgv2"]
-    uiv1, uiv2 = contrast_views["uiv1"], contrast_views["uiv2"]
-
-    l_kg = list()
-    l_item = list()
-    l_user = list()
-
-    if world.kgc_enable:
-        # item_num, emb_dim
-        kgv1_readouts = recmodel.cal_item_embedding_from_kg(kgv1).split(2048)
-        kgv2_readouts = recmodel.cal_item_embedding_from_kg(kgv2).split(2048)
-
-        for kgv1_ro, kgv2_ro in zip(kgv1_readouts, kgv2_readouts):
-            l_kg.append(contrast_model.semi_loss(kgv1_ro, kgv2_ro).sum())
-
-    l_contrast = torch.stack(l_kg).sum()
-    optimizer.zero_grad()
-    l_contrast.backward()
-    optimizer.step()
-
-    aver_loss += l_contrast.cpu().item() / len(kgv1_readouts)
-    return aver_loss
-
-
-def BPR_train_contrast(dataset, recommend_model, loss_class, contrast_model :Contrast, contrast_views, epoch, optimizer, neg_k=1, w=None):
-    Recmodel :model.KGCL = recommend_model
+def BPR_train_contrast(dataset, recommend_model, loss_class, contrast_model: Contrast, contrast_views, epoch, optimizer, neg_k=1, w=None):
+    Recmodel: model.KGCL = recommend_model
     Recmodel.train()
     bpr: utils.BPRLoss = loss_class
     batch_size = world.config['bpr_batch_size']
-    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, drop_last=True, num_workers=12)
+    dataloader = DataLoader(dataset, batch_size=batch_size,
+                            shuffle=True, drop_last=True, num_workers=12)
 
     total_batch = len(dataloader)
     aver_loss = 0.
@@ -86,7 +60,7 @@ def BPR_train_contrast(dataset, recommend_model, loss_class, contrast_model :Con
     # For SGL
     uiv1, uiv2 = contrast_views["uiv1"], contrast_views["uiv2"]
     kgv1, kgv2 = contrast_views["kgv1"], contrast_views["kgv2"]
-    for batch_i, train_data in tqdm(enumerate(dataloader), total=len(dataloader),disable=True):
+    for batch_i, train_data in tqdm(enumerate(dataloader), total=len(dataloader), disable=True):
         batch_users = train_data[0].long().to(world.device)
         batch_pos = train_data[1].long().to(world.device)
         batch_neg = train_data[2].long().to(world.device)
@@ -95,11 +69,11 @@ def BPR_train_contrast(dataset, recommend_model, loss_class, contrast_model :Con
         # bpr loss for a batch of users
         l_main = bpr.compute(batch_users, batch_pos, batch_neg)
         l_ssl = list()
-        items = batch_pos # [B*1]
+        items = batch_pos  # [B*1]
 
-        if world.uicontrast!="NO":
+        if world.uicontrast != "NO":
             # do SGL:
-                # readout
+            # readout
             if world.kgc_joint:
                 usersv1_ro, itemsv1_ro = Recmodel.view_computer_all(uiv1, kgv1)
                 usersv2_ro, itemsv2_ro = Recmodel.view_computer_all(uiv2, kgv2)
@@ -109,16 +83,18 @@ def BPR_train_contrast(dataset, recommend_model, loss_class, contrast_model :Con
             # from SGL source
             items_uiv1 = itemsv1_ro[items]
             items_uiv2 = itemsv2_ro[items]
-            l_item = contrast_model.info_nce_loss_overall(items_uiv1, items_uiv2, itemsv2_ro)
+            l_item = contrast_model.info_nce_loss_overall(
+                items_uiv1, items_uiv2, itemsv2_ro)
 
             users = batch_users
             users_uiv1 = usersv1_ro[users]
             users_uiv2 = usersv2_ro[users]
-            l_user = contrast_model.info_nce_loss_overall(users_uiv1, users_uiv2, usersv2_ro)
+            l_user = contrast_model.info_nce_loss_overall(
+                users_uiv1, users_uiv2, usersv2_ro)
             # l_user = contrast_model.grace_loss(users_uiv1, users_uiv2)
             # L = L_main + L_user + L_item + L_kg + R^2
             l_ssl.extend([l_user*world.ssl_reg, l_item*world.ssl_reg])
-        
+
         if l_ssl:
             l_ssl = torch.stack(l_ssl).sum()
             l_all = l_main+l_ssl
@@ -132,7 +108,8 @@ def BPR_train_contrast(dataset, recommend_model, loss_class, contrast_model :Con
         aver_loss_main += l_main.cpu().item()
         aver_loss += l_all.cpu().item()
         if world.tensorboard:
-            w.add_scalar(f'BPRLoss/BPR', l_all, epoch * int(len(users) / world.config['bpr_batch_size']) + batch_i)
+            w.add_scalar(f'BPRLoss/BPR', l_all, epoch *
+                         int(len(users) / world.config['bpr_batch_size']) + batch_i)
     aver_loss = aver_loss / (total_batch*batch_size)
     aver_loss_main = aver_loss_main / (total_batch*batch_size)
     aver_loss_ssl = aver_loss_ssl / (total_batch*batch_size)
@@ -141,12 +118,11 @@ def BPR_train_contrast(dataset, recommend_model, loss_class, contrast_model :Con
     return f"loss{aver_loss:.3f} = {aver_loss_ssl:.3f}+{aver_loss_main:.3f}-{time_info}"
 
 
-
 def BPR_train_original(dataset, recommend_model, loss_class, epoch, neg_k=1, w=None):
     Recmodel = recommend_model
     Recmodel.train()
     bpr: utils.BPRLoss = loss_class
-    
+
     with timer(name="Main"):
         S = utils.UniformSample_original(dataset)
     users = torch.Tensor(S[:, 0]).long()
@@ -169,13 +145,14 @@ def BPR_train_original(dataset, recommend_model, loss_class, epoch, neg_k=1, w=N
         cri = bpr.stageOne(batch_users, batch_pos, batch_neg)
         aver_loss += cri
         if world.tensorboard:
-            w.add_scalar(f'BPRLoss/BPR', cri, epoch * int(len(users) / world.config['bpr_batch_size']) + batch_i)
+            w.add_scalar(f'BPRLoss/BPR', cri, epoch *
+                         int(len(users) / world.config['bpr_batch_size']) + batch_i)
     aver_loss = aver_loss / total_batch
     time_info = timer.dict()
     timer.zero()
     return f"loss{aver_loss:.3f}-{time_info}"
-    
-    
+
+
 def test_one_batch(X):
     sorted_items = X[0].numpy()
     groundTrue = X[1]
@@ -185,12 +162,12 @@ def test_one_batch(X):
         ret = utils.RecallPrecision_ATk(groundTrue, r, k)
         pre.append(ret['precision'])
         recall.append(ret['recall'])
-        ndcg.append(utils.NDCGatK_r(groundTrue,r,k))
-    return {'recall':np.array(recall), 
-            'precision':np.array(pre), 
-            'ndcg':np.array(ndcg)}
-        
-            
+        ndcg.append(utils.NDCGatK_r(groundTrue, r, k))
+    return {'recall': np.array(recall),
+            'precision': np.array(pre),
+            'ndcg': np.array(ndcg)}
+
+
 def Test(dataset, Recmodel, epoch, w=None, multicore=0):
     u_batch_size = world.config['test_u_batch_size']
     dataset: utils.BasicDataset
@@ -209,7 +186,8 @@ def Test(dataset, Recmodel, epoch, w=None, multicore=0):
         try:
             assert u_batch_size <= len(users) / 10
         except AssertionError:
-            print(f"test_u_batch_size is too big for this dataset, try a small one {len(users) // 10}")
+            print(
+                f"test_u_batch_size is too big for this dataset, try a small one {len(users) // 10}")
         users_list = []
         rating_list = []
         groundTrue_list = []
@@ -229,12 +207,12 @@ def Test(dataset, Recmodel, epoch, w=None, multicore=0):
             for range_i, items in enumerate(allPos):
                 exclude_index.extend([range_i] * len(items))
                 exclude_items.extend(items)
-            rating[exclude_index, exclude_items] = -(1<<10)
+            rating[exclude_index, exclude_items] = -(1 << 10)
             _, rating_K = torch.topk(rating, k=max_K)
             rating = rating.cpu().numpy()
-            # aucs = [ 
+            # aucs = [
             #         utils.AUC(rating[i],
-            #                   dataset, 
+            #                   dataset,
             #                   test_data) for i, test_data in enumerate(groundTrue)
             #     ]
             # auc_record.extend(aucs)

@@ -6,6 +6,8 @@ Xiangnan He et al. LightGCN: Simplifying and Powering Graph Convolution Network 
 @author: Jianbai Ye (gusye@mail.ustc.edu.cn)
 '''
 
+from warnings import simplefilter
+import sys
 import os
 from os.path import join
 import torch
@@ -20,7 +22,6 @@ CODE_PATH = join(ROOT_PATH, 'code')
 DATA_PATH = join(ROOT_PATH, 'data')
 BOARD_PATH = join(CODE_PATH, 'runs')
 FILE_PATH = join(CODE_PATH, 'checkpoints')
-import sys
 sys.path.append(join(CODE_PATH, 'sources'))
 
 
@@ -30,13 +31,13 @@ if not os.path.exists(FILE_PATH):
 
 config = {}
 all_dataset = ['movielens', 'last-fm', 'MIND', 'yelp2018', 'amazon-book']
-all_models  = ['lgn','kgcl','sgl']
+all_models = ['lgn', 'kgcl', 'sgl']
 # config['batch_size'] = 4096
 config['bpr_batch_size'] = args.bpr_batch
 config['latent_dim_rec'] = args.recdim
-config['lightGCN_n_layers']= args.layer
+config['lightGCN_n_layers'] = args.layer
 config['dropout'] = args.dropout
-config['keep_prob']  = args.keepprob
+config['keep_prob'] = args.keepprob
 config['A_n_fold'] = args.a_fold
 config['test_u_batch_size'] = args.testbatch
 config['multicore'] = args.multicore
@@ -51,7 +52,7 @@ device = torch.device('cuda' if GPU else "cpu")
 kgcn = "RGAT"
 train_trans = True
 entity_num_per_item = 10
-# WEIGHTED (-MIX) \ RANDOM \ ITEM-BI \ PGRACE \NO
+# WEIGHTED (-MIX) \ RANDOM \ NO
 uicontrast = "RANDOM"
 kgc_enable = True
 kgc_joint = True
@@ -69,11 +70,11 @@ test_start_epoch = 1
 early_stop_cnt = 10
 
 dataset = args.dataset
-if dataset=='MIND':
+if dataset == 'MIND':
     config['lr'] = 5e-4
     config['decay'] = 1e-3
     config['dropout'] = 1
-    config['keep_prob']  = 0.6
+    config['keep_prob'] = 0.6
 
     uicontrast = "WEIGHTED-MIX"
     kgc_enable = True
@@ -90,19 +91,19 @@ if dataset=='MIND':
     mix_ratio = 1-ui_p_drop-0
     test_start_epoch = 1
     early_stop_cnt = 3
-    
-elif dataset=='amazon-book':
+
+elif dataset == 'amazon-book':
     config['dropout'] = 1
-    config['keep_prob']  = 0.8
+    config['keep_prob'] = 0.8
     uicontrast = "WEIGHTED"
     ui_p_drop = 0.05
     mix_ratio = 0.75
     test_start_epoch = 15
     early_stop_cnt = 5
 
-elif dataset=='yelp2018':
+elif dataset == 'yelp2018':
     config['dropout'] = 1
-    config['keep_prob']  = 0.8
+    config['keep_prob'] = 0.8
     uicontrast = "WEIGHTED"
     ui_p_drop = 0.1
     test_start_epoch = 25
@@ -111,9 +112,11 @@ elif dataset=='yelp2018':
 
 model_name = args.model
 if dataset not in all_dataset:
-    raise NotImplementedError(f"Haven't supported {dataset} yet!, try {all_dataset}")
+    raise NotImplementedError(
+        f"Haven't supported {dataset} yet!, try {all_dataset}")
 if model_name not in all_models:
-    raise NotImplementedError(f"Haven't supported {model_name} yet!, try {all_models}")
+    raise NotImplementedError(
+        f"Haven't supported {model_name} yet!, try {all_models}")
 if model_name == 'lgn':
     kgcn = "NO"
     train_trans = False
@@ -134,7 +137,6 @@ elif model_name == 'sgl':
     pretrain_kgc = False
 
 
-
 TRAIN_epochs = args.epochs
 LOAD = args.load
 PATH = args.path
@@ -142,11 +144,8 @@ topks = eval(args.topks)
 tensorboard = args.tensorboard
 comment = args.comment
 # let pandas shut up
-from warnings import simplefilter
 simplefilter(action="ignore", category=FutureWarning)
 
 
-
-def cprint(words : str):
+def cprint(words: str):
     print(words)
-    # print(f"\033[0;30;43m{words}\033[0m")
