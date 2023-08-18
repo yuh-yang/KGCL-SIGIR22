@@ -1,5 +1,5 @@
 ## Updates
-**03-07-2023:** Check our new implementation of KGCL based on the same code framework with KGIN at https://github.com/HKUDS/KGRec
+**03-07-2023:** Check our new implementation of KGCL based on the same code framework with KGIN at https://github.com/HKUDS/KGRec 
 
 **17-01-2023:** We have rebuilt the code for KGCL to significantly improve the readability and model performance! The new version will be available soon after close check.
 ## KGCL
